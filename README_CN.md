@@ -1,0 +1,114 @@
+# Auto-claude-code-research-in-sleep
+
+![分数曲线](auto_review_score_curve.png)
+
+> **让 Claude Code 在你睡觉时做科研。** 醒来发现论文已被打分、弱点已被定位、实验已跑完、叙事已重写——全自动。
+
+基于 [Claude Code](https://docs.anthropic.com/en/docs/claude-code) 的自定义 Skills，用于自主 ML 科研工作流。核心机制是**跨模型协作**——Claude Code 负责执行（读文件、写代码、跑实验、收结果），外部 LLM（通过 [Codex MCP](https://github.com/openai/codex)）负责评审（打分、找弱点、建议修复）。两个模型互不评自己的作业，形成真正的反馈循环。
+
+## 真实运行效果
+
+某 ML 研究项目上的 4 轮自动循环，从 borderline reject 到可投稿：
+
+| 轮次 | 分数 | 发生了什么 |
+|------|------|-----------|
+| 初始 | 5.0/10 | Borderline reject |
+| 第 1 轮 | 6.5/10 | 补了标准指标，发现指标脱钩 |
+| 第 2 轮 | 6.8/10 | 核心声明不可复现，转换叙事 |
+| 第 3 轮 | 7.0/10 | 大规模 seed 研究推翻了主要改善声明 |
+| 第 4 轮 | **7.5/10** | 诊断证据确立，**可以投稿** |
+
+循环自主跑了 **20+ 个 GPU 实验**，重写了论文叙事框架，杀掉了经不住检验的声明——全程无人干预。
+
+---
+
+## 两种工作流
+
+### 工作流 1：自动科研循环（睡一觉醒来看结果）
+
+> "帮我 review 论文，修复问题，循环到通过为止。"
+
+**涉及 Skills：** `auto-review-loop` + `research-review` + `analyze-results` + `monitor-experiment`
+
+```
+外部 LLM 评审 → Claude Code 实现修复 → 跑实验 → 收结果 → 再评审 → 循环
+```
+
+用法：
+```
+> /auto-review-loop 我的 diffusion model 论文
+```
+
+### 工作流 2：文献调研与找 Idea
+
+> "这个领域最新进展是什么？哪里有 gap？"
+
+**涉及 Skills：** `research-lit` + `research-review`
+
+```
+1. /research-lit "discrete diffusion models"    ← 搜论文，整理全景
+2. 读完全景，发现一个 gap
+3. /research-review "我的 idea 是用 X 来解决 Y"   ← 让外部 LLM 批判你的想法
+4. 根据反馈迭代
+```
+
+---
+
+## 全部 Skills
+
+| Skill | 功能 | 需要 Codex MCP？ |
+|-------|------|-----------------|
+| [`research-review`](skills/research-review/SKILL.md) | 单轮深度评审（外部 LLM，xhigh 推理） | 是 |
+| [`auto-review-loop`](skills/auto-review-loop/SKILL.md) | 多轮自动 review→修复→再 review 循环（最多 4 轮） | 是 |
+| [`research-lit`](skills/research-lit/SKILL.md) | 搜论文、分析相关工作、找研究空白 | 否 |
+| [`analyze-results`](skills/analyze-results/SKILL.md) | 分析实验结果、统计、生成对比表 | 否 |
+| [`monitor-experiment`](skills/monitor-experiment/SKILL.md) | 监控实验进度、收集结果 | 否 |
+
+---
+
+## 安装
+
+### 前置条件
+
+1. 安装 [Claude Code](https://docs.anthropic.com/en/docs/claude-code)
+2. （仅 review 类 skill 需要）安装 [Codex CLI](https://github.com/openai/codex) 并配置为 MCP server：
+   ```bash
+   npm install -g @openai/codex
+   claude mcp add codex -s user -- codex mcp-server
+   ```
+
+### 安装 Skills
+
+```bash
+git clone https://github.com/wanshuiyin/Auto-claude-code-research-in-sleep.git
+cd Auto-claude-code-research-in-sleep
+
+# 安装全部 skills（全局可用）
+cp -r skills/* ~/.claude/skills/
+
+# 或者只安装特定 skill
+cp -r skills/auto-review-loop ~/.claude/skills/
+cp -r skills/research-lit ~/.claude/skills/
+```
+
+### 过夜自动运行的免确认配置（可选）
+
+在 `.claude/settings.local.json` 中添加：
+
+```json
+{
+  "permissions": {
+    "allow": [
+      "mcp__codex__codex",
+      "mcp__codex__codex-reply",
+      "Write",
+      "Edit",
+      "Skill(auto-review-loop)"
+    ]
+  }
+}
+```
+
+## 许可证
+
+MIT

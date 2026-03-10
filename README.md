@@ -1,56 +1,109 @@
 # Auto-claude-code-research-in-sleep
 
-Custom [Claude Code](https://docs.anthropic.com/en/docs/claude-code) skills for autonomous ML research workflows. These skills orchestrate **cross-model collaboration** — Claude Code drives the research while an external LLM (via [Codex MCP](https://github.com/openai/codex)) acts as a critical reviewer.
-
-## What's Inside
-
-### `/research-review` — Single-Round Deep Review
-
-Get a multi-round critical review of your research from an external LLM with maximum reasoning depth.
-
-**What it does:**
-1. Automatically gathers your project context (narrative docs, experiment results, memory files)
-2. Sends a comprehensive briefing to the external reviewer (xhigh reasoning)
-3. Facilitates iterative dialogue — push back on criticisms, request experiment designs, get claims matrices
-4. Documents everything in a self-contained review file
-
-**Trigger:** `"review my research"`, `"help me review"`, `"get external review"`
-
-### `/auto-review-loop` — Autonomous Multi-Round Review-Fix Loop
-
-The main event. Autonomously loops: **review → implement fixes → re-review**, until the reviewer gives a positive assessment or 4 rounds are reached.
-
-**What it does:**
-1. Gets a scored review (1-10) with ranked weaknesses
-2. Automatically implements fixes — writes code, runs experiments on remote GPUs, rewrites narratives
-3. Re-submits to the reviewer with updated results
-4. Repeats until score threshold is met or max rounds exhausted
-5. Logs every round in a cumulative `AUTO_REVIEW.md`
-
-**Trigger:** `"auto review loop"`, `"review until it passes"`
-
-## Score Progression (Real Run of Auto-claude-code-research-in-sleep)
-
-A real 4-round run on an ML research project, going from borderline reject to submission-ready:
+[中文版 README](README_CN.md) | English
 
 ![Score Progression](auto_review_score_curve.png)
 
-| Round | Score | Key Change |
-|-------|-------|------------|
+> **Let Claude Code do research while you sleep.** Wake up to find your paper scored, weaknesses identified, experiments run, and narrative rewritten — autonomously.
+
+Custom [Claude Code](https://docs.anthropic.com/en/docs/claude-code) skills for autonomous ML research workflows. These skills orchestrate **cross-model collaboration** — Claude Code drives the research while an external LLM (via [Codex MCP](https://github.com/openai/codex)) acts as a critical reviewer.
+
+## Score Progression (Real Run)
+
+A real overnight 4-round run on an ML research project, from borderline reject to submission-ready:
+
+| Round | Score | What Happened |
+|-------|-------|---------------|
 | Initial | 5.0/10 | Borderline reject |
 | Round 1 | 6.5/10 | Added standard metrics, discovered metric decoupling |
 | Round 2 | 6.8/10 | Key claim failed to reproduce, pivoted narrative |
 | Round 3 | 7.0/10 | Large seed study killed main improvement claim |
 | Round 4 | **7.5/10** | Diagnostic evidence solidified, **submission ready** |
 
-The loop autonomously ran 20+ GPU experiments, rewrote the paper's narrative framing, and killed claims that didn't hold up — all without human intervention.
+The loop autonomously ran **20+ GPU experiments**, rewrote the paper's narrative framing, and killed claims that didn't hold up — all without human intervention.
+
+---
+
+## Workflows
+
+These skills are designed to be composed into two main research workflows:
+
+### Workflow 1: Auto Research Loop (sleep & wake up to results)
+
+> **"Review my paper, fix what's wrong, repeat until it's good."**
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Auto Review Loop                          │
+│                                                              │
+│   /research-review          /auto-review-loop                │
+│   (single deep review)      (autonomous loop)                │
+│         │                         │                          │
+│         ▼                         ▼                          │
+│   ┌──────────┐   ┌──────────┐   ┌──────────┐               │
+│   │ External  │──▶│ Implement│──▶│ Monitor  │──▶ repeat     │
+│   │ LLM      │   │ fixes    │   │ results  │    until       │
+│   │ reviews  │   │ & run    │   │          │    score ≥ 6   │
+│   └──────────┘   │ experiments│  └──────────┘               │
+│                   └──────────┘                               │
+│                                                              │
+│   Supporting skills:                                         │
+│   /analyze-results  — interpret experiment outputs           │
+│   /monitor-experiment — check progress, collect results      │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Skills involved:** `auto-review-loop` + `research-review` + `analyze-results` + `monitor-experiment`
+
+### Workflow 2: Literature & Idea Discovery
+
+> **"What's the state of the art? Where are the gaps?"**
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                  Idea Discovery                              │
+│                                                              │
+│   /research-lit              /research-review                │
+│   (find & analyze papers)    (get critical feedback)         │
+│         │                         │                          │
+│         ▼                         ▼                          │
+│   ┌──────────┐              ┌──────────┐                    │
+│   │ Search   │              │ External │                    │
+│   │ arXiv,   │──────────────▶│ LLM     │                    │
+│   │ Scholar  │  "here's the │ evaluates│                    │
+│   │ for gaps │   landscape" │ your idea│                    │
+│   └──────────┘              └──────────┘                    │
+│                                                              │
+│   Typical flow:                                              │
+│   1. /research-lit "discrete diffusion models"               │
+│   2. Read the landscape summary, spot a gap                  │
+│   3. /research-review "my idea to fix X using Y"             │
+│   4. Iterate on the idea with critical feedback              │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Skills involved:** `research-lit` + `research-review`
+
+---
+
+## All Skills
+
+| Skill | Description | Needs Codex MCP? |
+|-------|-------------|-----------------|
+| [`research-review`](skills/research-review/SKILL.md) | Single-round deep review from external LLM (xhigh reasoning) | Yes |
+| [`auto-review-loop`](skills/auto-review-loop/SKILL.md) | Autonomous multi-round review→fix→re-review loop (max 4 rounds) | Yes |
+| [`research-lit`](skills/research-lit/SKILL.md) | Search papers, analyze related work, find research gaps | No |
+| [`analyze-results`](skills/analyze-results/SKILL.md) | Analyze experiment results, compute statistics, generate insights | No |
+| [`monitor-experiment`](skills/monitor-experiment/SKILL.md) | Monitor running experiments, check progress, collect results | No |
+
+---
 
 ## Setup
 
 ### Prerequisites
 
 1. [Claude Code](https://docs.anthropic.com/en/docs/claude-code) installed
-2. [Codex CLI](https://github.com/openai/codex) installed and configured as MCP server:
+2. (For review skills) [Codex CLI](https://github.com/openai/codex) installed and configured as MCP server:
    ```bash
    npm install -g @openai/codex
    claude mcp add codex -s user -- codex mcp-server
@@ -58,30 +111,31 @@ The loop autonomously ran 20+ GPU experiments, rewrote the paper's narrative fra
 
 ### Install Skills
 
-Copy the skill directories to your Claude Code skills folder:
-
 ```bash
-# Global (available in all projects)
-cp -r skills/research-review ~/.claude/skills/
-cp -r skills/auto-review-loop ~/.claude/skills/
+git clone https://github.com/wanshuiyin/Auto-claude-code-research-in-sleep.git
+cd Auto-claude-code-research-in-sleep
 
-# Or project-local (available only in one project)
-cp -r skills/research-review .claude/skills/
-cp -r skills/auto-review-loop .claude/skills/
+# Install all skills globally
+cp -r skills/* ~/.claude/skills/
+
+# Or install specific skills
+cp -r skills/auto-review-loop ~/.claude/skills/
+cp -r skills/research-lit ~/.claude/skills/
 ```
 
 ### Usage
 
-In Claude Code:
-
 ```
-> /research-review my diffusion model paper
-> /auto-review-loop ML paper on training dynamics
+> /research-lit discrete diffusion language models
+> /research-review my paper on training dynamics in D-LLMs
+> /auto-review-loop ML paper on factorized gap diagnosis
+> /analyze-results figures/*.json
+> /monitor-experiment server5
 ```
 
-### Auto-Allow (Optional)
+### Auto-Allow for Overnight Runs (Optional)
 
-To run the auto-review loop without clicking permission prompts, add these to your `.claude/settings.local.json`:
+To run the auto-review loop without clicking permission prompts, add to `.claude/settings.local.json`:
 
 ```json
 {
@@ -125,13 +179,13 @@ The key insight: **Claude Code handles execution** (reading files, writing code,
 
 ## Customization
 
-The skills are plain Markdown files. Customize by editing:
+Skills are plain Markdown files. Fork and customize:
 
 - **`MAX_ROUNDS`** — increase for more thorough iteration (default: 4)
 - **`POSITIVE_THRESHOLD`** — adjust the stop condition score
 - **Prioritization rules** — change compute limits, what fixes to skip
 - **Prompt templates** — tailor the review persona and evaluation criteria
-- **`allowed-tools`** — restrict or expand what the skill can do
+- **`allowed-tools`** — restrict or expand what each skill can do
 
 ## License
 
