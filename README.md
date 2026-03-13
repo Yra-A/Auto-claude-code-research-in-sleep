@@ -1,14 +1,60 @@
 # Auto-claude-code-research-in-sleep (ARIS ⚔️)
 
-[中文版 README](README_CN.md) | English
-
 ![Hero](docs/hero_combined.svg)
+
+[中文版 README](README_CN.md) | English
 
 ![Score Progression](docs/auto_review_score_curve.png)
 
 > 🌙 **Let Claude Code do research while you sleep.** Wake up to find your paper scored, weaknesses identified, experiments run, and narrative rewritten — autonomously.
 
-Custom [Claude Code](https://docs.anthropic.com/en/docs/claude-code) skills for autonomous ML research workflows. These skills orchestrate **cross-model collaboration** — Claude Code drives the research while an external LLM (via [Codex MCP](https://github.com/openai/codex)) acts as a critical reviewer. 🔀 **Also supports [alternative model combinations](#-alternative-model-combination-glm--minimax) (e.g., GLM + MiniMax) — no Claude/OpenAI API required.**
+[![Featured in awesome-agent-skills](https://img.shields.io/badge/Featured%20in-awesome--agent--skills-blue?style=flat&logo=github)](https://github.com/VoltAgent/awesome-agent-skills) · [💬 Join Community](#-community)
+
+Custom [Claude Code](https://docs.anthropic.com/en/docs/claude-code) skills for autonomous ML research workflows. These skills orchestrate **cross-model collaboration** — Claude Code drives the research while an external LLM (via [Codex MCP](https://github.com/openai/codex)) acts as a critical reviewer. 🔀 **Also supports [alternative model combinations](#-alternative-model-combinations) (e.g., GLM + GPT, GLM + MiniMax) — no Claude API required.**
+
+> 💭 **Why not self-play with a single model?** Using Claude Code subagents or agent teams for both execution and review is technically possible, but tends to fall into **local minima** — the same model reviewing its own patterns creates blind spots.
+>
+> *Think of it like adversarial vs. stochastic bandits: a single model self-reviewing is the stochastic case (predictable reward noise), while cross-model review is adversarial (the reviewer actively probes weaknesses the executor didn't anticipate) — and adversarial bandits are fundamentally harder to game.*
+>
+> 💭 **Why two models, not more?** Two is the minimum needed to break self-play blind spots, and 2-player games converge to Nash equilibrium far more efficiently than n-player ones. Adding more reviewers increases API cost and coordination overhead with diminishing returns — the biggest gain is going from 1→2, not 2→4.
+>
+> Claude Code's strength is fast, fluid execution; Codex (GPT-5.4 xhigh) is slower but more deliberate and rigorous in critique. These complementary styles — **speed × rigor** — produce better outcomes than either model talking to itself.
+
+## 🚀 Quick Start
+
+```bash
+# 1. Install skills
+git clone https://github.com/wanshuiyin/Auto-claude-code-research-in-sleep.git
+cp -r Auto-claude-code-research-in-sleep/skills/* ~/.claude/skills/
+
+# 2. Set up Codex MCP (for review skills)
+npm install -g @openai/codex
+claude mcp add codex -s user -- codex mcp-server
+
+# 3. Use in Claude Code
+claude
+> /idea-discovery "your research direction"  # Workflow 1: literature → brainstorm → validate
+> /auto-review-loop                          # Workflow 2: review → fix → re-review overnight
+> /paper-writing "NARRATIVE_REPORT.md"       # Workflow 3: narrative → polished PDF
+> /research-pipeline "your research direction"  # Full pipeline: Workflow 1 → 2 → 3 end-to-end
+```
+
+See [full setup guide](#%EF%B8%8F-setup) for details and [alternative model combinations](#-alternative-model-combinations) if you don't have Claude/OpenAI API.
+
+## ✨ Features
+
+- 📊 **17 composable skills** — mix and match, or chain into full pipelines (`/idea-discovery`, `/auto-review-loop`, `/paper-writing`, `/research-pipeline`)
+- 🔄 **Auto review loop** — 4-round autonomous review, 5/10 → 7.5/10 overnight with 20+ GPU experiments
+- 💡 **Idea discovery** — literature survey → brainstorm 8-12 ideas → novelty check → GPU pilot experiments → ranked report
+- 📝 **Paper writing** — narrative → outline → figures → LaTeX → PDF → auto-review (4/10 → 8.5/10), one command
+- 🔍 **Literature & novelty** — multi-source paper search (Zotero + Obsidian + local PDFs + arXiv/Scholar) + cross-model novelty verification
+- 🤖 **Cross-model collaboration** — Claude Code executes, GPT-5.4 xhigh reviews. Adversarial, not self-play
+- 📝 **Peer review** — review others' papers as a conference reviewer, with structured scoring and meta-review
+- 🖥️ **GPU deployment** — auto rsync, screen sessions, multi-GPU parallel experiments, live monitoring
+- 🔀 **Flexible models** — default Claude × GPT-5.4, also supports [GLM + GPT, GLM + MiniMax](#-alternative-model-combinations) — no Claude API required
+- 🛑 **Human-in-the-loop** — configurable checkpoints at key decisions. `AUTO_PROCEED=true` for full autopilot, `false` to approve each step
+
+---
 
 ## 📈 Score Progression (Real Run)
 
@@ -24,7 +70,30 @@ A real overnight 4-round run on an ML research project, from borderline reject t
 
 The loop autonomously ran **20+ GPU experiments**, rewrote the paper's narrative framing, and killed claims that didn't hold up — all without human intervention.
 
-## 💡 Idea Discovery (New)
+## 🔄 Workflows
+
+These skills compose into a full research lifecycle. The three workflows can be used independently or chained together:
+
+- **Exploring a new area (e.g., writing a survey)?** Start with Workflow 1 → `/idea-discovery`
+- **Already have an idea + initial plan?** Jump straight to Workflow 2 → `/auto-review-loop`
+- **Ready to write the paper?** Workflow 3 → `/paper-writing` (or step by step: `/paper-plan` → `/paper-figure` → `/paper-write` → `/paper-compile` → `/auto-paper-improvement-loop`)
+- **Full pipeline?** Workflow 1 → Workflow 2 → Workflow 3 → `/research-pipeline` — from literature survey all the way to submission
+
+> ⚠️ **Important:** These tools accelerate research, but they don't replace your own critical thinking. Always review generated ideas with your domain expertise, question the assumptions, and make the final call yourself. The best research comes from human insight + AI execution, not full autopilot.
+
+### Full Pipeline 🚀
+
+```
+/research-lit → /idea-creator → /novelty-check → implement → /run-experiment → /auto-review-loop → /paper-plan → /paper-figure → /paper-write → /auto-paper-improvement-loop → submit
+  (survey)      (brainstorm)    (verify novel)    (code)      (deploy & run)    (review & fix)      (outline)     (plots)        (LaTeX+PDF)     (review ×2 + format)     (done!)
+  ├──── Workflow 1: Idea Discovery ────┤              ├──── Workflow 2: Auto Loop ────┤   ├──────────────── Workflow 3: Paper Writing ──────────────────┤
+```
+
+📝 **Blog post:** [梦中科研全流程开源](http://xhslink.com/o/2iV33fYoc7Q)
+
+### Workflow 1: Literature & Idea Discovery 🔍
+
+> **"What's the state of the art? Where are the gaps?"**
 
 Don't have a concrete idea yet? Just give a research direction — `/idea-creator` handles the rest:
 
@@ -36,32 +105,6 @@ Don't have a concrete idea yet? Just give a research direction — `/idea-creato
 6. 🏆 **Rank** by empirical signal — ideas with positive pilot results rise to the top
 
 The output is a ranked `IDEA_REPORT.md` with hypotheses, pilot results, reviewer objections, and a suggested execution order. Ideas that fail are documented too, saving future dead-end exploration.
-
----
-
-## 🔄 Workflows
-
-These skills compose into a full research lifecycle. The two workflows can be used independently or chained together:
-
-- **Exploring a new area (e.g., writing a survey)?** Start with Workflow 1 → `/idea-discovery`
-- **Already have an idea + initial plan?** Jump straight to Workflow 2 → `/auto-review-loop`
-- **Full pipeline?** Workflow 1 → Workflow 2 → `/research-pipeline` — from literature survey all the way to submission
-
-> ⚠️ **Important:** These tools accelerate research, but they don't replace your own critical thinking. Always review generated ideas with your domain expertise, question the assumptions, and make the final call yourself. The best research comes from human insight + AI execution, not full autopilot.
-
-### Full Pipeline 🚀
-
-```
-/research-lit → /idea-creator → /novelty-check → implement → /run-experiment → /auto-review-loop → submit
-  (survey)      (brainstorm)    (verify novel)    (code)      (deploy & run)    (review & fix)     (done!)
-  ├──── Workflow 1: Idea Discovery ────┤              ├──────── Workflow 2: Auto Loop ────────┤
-```
-
-📝 **Blog post:** [梦中科研全流程开源](http://xhslink.com/o/2iV33fYoc7Q)
-
-### Workflow 1: Literature & Idea Discovery 🔍
-
-> **"What's the state of the art? Where are the gaps?"**
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -145,10 +188,122 @@ These skills compose into a full research lifecycle. The two workflows can be us
 - 🧠 **Prefer reframing over new experiments** — when both can address a weakness, chooses the cheaper path
 - 🪞 **No hiding weaknesses** — explicit rule: "Do NOT hide weaknesses to game a positive score"
 - 🔧 **Fix before re-review** — must actually implement fixes before resubmitting; no empty promises
+- 💾 **Compact recovery** — persists state (`REVIEW_STATE.json`) after each round. If the context window fills up and auto-compacts mid-loop, the workflow reads the state file and resumes from where it left off — no human intervention needed
 
 > ⚙️ MAX_ROUNDS, score threshold, and GPU limits are configurable — see [Customization](#%EF%B8%8F-customization).
 
 📝 **Blog post:** [开源 | 睡觉 Claude 自动跑实验改文](http://xhslink.com/o/5cBMTDigNXz)
+
+### Workflow 3: Paper Writing Pipeline 📝
+
+> **"Turn my research narrative into a submission-ready PDF."** Requires a local LaTeX environment — see [Prerequisites](#prerequisites).
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                   Paper Writing Pipeline                      │
+│                                                               │
+│   /paper-plan      /paper-figure     /paper-write             │
+│   (outline)        (plots & tables)  (LaTeX draft)            │
+│        │                │                 │                   │
+│        ▼                ▼                 ▼                   │
+│   ┌──────────┐    ┌──────────┐     ┌──────────┐              │
+│   │ Claims-  │───▶│ Generate │────▶│ Section  │──┐           │
+│   │ Evidence │    │ figures, │     │ by       │  │           │
+│   │ Matrix + │    │ tables,  │     │ section  │  │           │
+│   │ Section  │    │ LaTeX    │     │ LaTeX    │  │           │
+│   │ Plan     │    │ includes │     │ draft    │  │           │
+│   └──────────┘    └──────────┘     └──────────┘  │           │
+│        │                                          │           │
+│        │         /paper-compile                   │           │
+│        │         (build PDF)                      │           │
+│        │              │                           │           │
+│        ▼              ▼                           ▼           │
+│   ┌──────────────────────────────────────────────────┐       │
+│   │ NARRATIVE_REPORT.md ──► PAPER_PLAN.md ──► paper/ │       │
+│   │    (input)             (outline)      (LaTeX+PDF)│       │
+│   └──────────────────────────────────────────────────┘       │
+│                                                               │
+│   Typical flow:                                               │
+│   1. Write NARRATIVE_REPORT.md (from Workflow 2 results)      │
+│   2. /paper-plan (claims-evidence matrix + section plan)      │
+│   3. /paper-figure (comparison tables, training curves, etc.) │
+│   4. /paper-write (section-by-section LaTeX generation)       │
+│   5. /paper-compile (build PDF, fix errors, page check)       │
+│   6. /auto-paper-improvement-loop (review ×2 + format check)  │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Skills involved:** `paper-plan` + `paper-figure` + `paper-write` + `paper-compile` + `auto-paper-improvement-loop`
+
+> **One-command shortcut:** `/paper-writing "NARRATIVE_REPORT.md"` runs this entire workflow automatically.
+
+**Input:** A `NARRATIVE_REPORT.md` describing the research: claims, experiments, results, figures. The more detailed the narrative (especially figure descriptions and quantitative results), the better the output.
+
+**Output:** A submission-ready `paper/` directory with LaTeX source, clean `.bib` (only cited entries), and compiled PDF.
+
+**Key features:**
+- 📐 **Claims-Evidence Matrix** — every claim maps to evidence, every experiment supports a claim
+- 📊 **Auto figure generation** — line plots, bar charts, comparison tables from JSON data
+- 🧹 **Clean bib** — automated filtering removes uncited entries (948→215 lines in testing)
+- 📄 **Flexible sections** — 5-8 sections depending on paper type (theory papers often need 7)
+- 🔍 **GPT-5.4 review** — each step optionally reviewed by external LLM
+- ✂️ **De-AI polish** — removes AI writing patterns (delve, pivotal, landscape...)
+- 🎯 **Page verification** — `pdftotext`-based precise check that main body fits page limit
+
+> ⚠️ **What `/paper-figure` can and cannot do:** It auto-generates **data-driven plots** (training curves, bar charts, heatmaps) and **comparison tables** (LaTeX) from JSON/CSV data. It **cannot** generate architecture diagrams, pipeline figures, model diagrams, or grids of generated images — these must be created manually (e.g., draw.io, Figma, TikZ) and placed in `figures/` before running `/paper-write`. In a typical ML paper, ~60% of figures are auto-generated and ~40% are manual.
+
+**Tested end-to-end:** Generated a 9-page ICLR 2026 theory paper (7 sections, 29 citations, 4 figures, 2 comparison tables) from a single NARRATIVE_REPORT.md — zero compilation errors, zero undefined references.
+
+#### Auto Paper Improvement Loop ✨
+
+After Workflow 3 generates the paper, `/auto-paper-improvement-loop` runs 2 rounds of GPT-5.4 xhigh content review → fix → recompile, plus a final format compliance check, autonomously polishing the paper from rough draft to submission-ready.
+
+**Score Progression (Real Test — ICLR 2026 theory paper):**
+
+| Round | Score | Key Changes |
+|-------|-------|-------------|
+| Round 0 | 4/10 (content) | Baseline |
+| Round 1 | 6/10 (content) | Fixed assumptions, softened claims, renamed notation |
+| Round 2 | 7/10 (content) | Added synthetic validation, stronger limitations |
+| Round 3 | 5→8.5/10 (format) | Removed hero fig, appendix, compressed conclusion, float spacing |
+
+**Final: 8 pages main body (ICLR limit: 9), 0 overfull hbox, ICLR-compliant.** +4.5 points across 3 rounds.
+
+<details>
+<summary>Round 1 fixes (6 items)</summary>
+
+1. **CRITICAL — Assumption-model mismatch**: A boundedness assumption contradicted the model's distributional family. Replaced with a tail-compatible assumption and added formal truncation bridge.
+2. **CRITICAL — Theory-practice gap**: Theory assumes idealized encoders, experiments use learned nonlinear encoders. Softened "validate" → "demonstrate practical relevance" and added explicit disclaimer.
+3. **MAJOR — Missing quantitative metrics**: Added parameter count table (latent vs total) with honest accounting of system cost.
+4. **MAJOR — Theorem not self-contained**: Added "Interpretation" paragraph listing all dependencies explicitly.
+5. **MAJOR — Overclaim in novelty statement**: Scoped a broad "first convergence guarantee" to precise conditions under which it holds.
+6. **MAJOR — Notation confusion**: Renamed a symbol that clashed with another key variable. Added Notation paragraph.
+
+</details>
+
+<details>
+<summary>Round 2 fixes (4 items)</summary>
+
+1. **MAJOR — Missing theory-aligned experiments**: Added a synthetic validation subsection directly testing the two main theoretical predictions under controlled conditions.
+2. **MAJOR — Overclaim softening**: Replaced strong equivalence claims with appropriately hedged language across all files.
+3. **MAJOR — Informal theoretical argument**: Formalized an informal justification into a proper proposition with explicit error bounds.
+4. **MINOR — Weak limitations**: Expanded to explicitly list all assumptions and acknowledge missing standard evaluations.
+
+</details>
+
+<details>
+<summary>Round 3 format fixes (8 items)</summary>
+
+1. Removed hero figure block (saved ~0.7 pages)
+2. Compressed conclusion from 15→9 lines
+3. Moved synthetic validation to Appendix A
+4. Moved comparison tables to Appendix B
+5. Fixed overfull hbox (85pt) with `\resizebox`
+6. Added compact float spacing (`\captionsetup`, `\textfloatsep`)
+7. Inlined centered question block in introduction
+8. Tightened `itemize` environments
+
+</details>
 
 ---
 
@@ -159,14 +314,20 @@ These skills compose into a full research lifecycle. The two workflows can be us
 | 💡 [`idea-creator`](skills/idea-creator/SKILL.md) | Generate and rank research ideas given a broad direction (brainstorm + filter + validate) | Yes |
 | 🔬 [`research-review`](skills/research-review/SKILL.md) | Single-round deep review from external LLM (xhigh reasoning) | Yes |
 | 🔁 [`auto-review-loop`](skills/auto-review-loop/SKILL.md) | Autonomous multi-round review→fix→re-review loop (max 4 rounds) | Yes |
-| 📚 [`research-lit`](skills/research-lit/SKILL.md) | Scan local paper library + search online, analyze related work, find gaps | No |
+| 📚 [`research-lit`](skills/research-lit/SKILL.md) | Scan Zotero + Obsidian + local PDFs + web search, analyze related work, find gaps | No (Optional: Zotero/Obsidian MCP) |
 | 📊 [`analyze-results`](skills/analyze-results/SKILL.md) | Analyze experiment results, compute statistics, generate insights | No |
 | 👀 [`monitor-experiment`](skills/monitor-experiment/SKILL.md) | Monitor running experiments, check progress, collect results | No |
 | 🔍 [`novelty-check`](skills/novelty-check/SKILL.md) | Verify research idea novelty against recent literature before implementing | Yes |
 | 🚀 [`run-experiment`](skills/run-experiment/SKILL.md) | Deploy experiments to local (MPS/CUDA) or remote GPU servers | No |
 | 🎨 [`pixel-art`](skills/pixel-art/SKILL.md) | Generate pixel art SVG illustrations for READMEs, docs, or slides | No |
 | 🔭 [`idea-discovery`](skills/idea-discovery/SKILL.md) | **Workflow 1 pipeline**: research-lit → idea-creator → novelty-check → research-review | Yes |
-| 🏗️ [`research-pipeline`](skills/research-pipeline/SKILL.md) | **Full pipeline**: Workflow 1 → implement → Workflow 2, from direction to submission | Yes |
+| 🏗️ [`research-pipeline`](skills/research-pipeline/SKILL.md) | **Full pipeline**: Workflow 1 → implement → Workflow 2 → Workflow 3, from direction to submission | Yes |
+| 📐 [`paper-plan`](skills/paper-plan/SKILL.md) | Generate paper outline with claims-evidence matrix, figure plan, and citation scaffolding | Yes |
+| 📊 [`paper-figure`](skills/paper-figure/SKILL.md) | Publication-quality matplotlib/seaborn plots from experiment data, with LaTeX snippets | Optional |
+| ✍️ [`paper-write`](skills/paper-write/SKILL.md) | Section-by-section LaTeX generation with ICLR/NeurIPS/ICML templates | Yes |
+| 🔨 [`paper-compile`](skills/paper-compile/SKILL.md) | Compile LaTeX to PDF, auto-fix errors, submission readiness checks | No |
+| 🔄 [`auto-paper-improvement-loop`](skills/auto-paper-improvement-loop/SKILL.md) | 2-round content review + format check loop on generated paper (4/10 → 8.5/10) | Yes |
+| 📝 [`paper-writing`](skills/paper-writing/SKILL.md) | **Workflow 3 pipeline**: paper-plan → paper-figure → paper-write → paper-compile → auto-paper-improvement-loop | Yes |
 
 ---
 
@@ -180,6 +341,19 @@ These skills compose into a full research lifecycle. The two workflows can be us
    npm install -g @openai/codex
    claude mcp add codex -s user -- codex mcp-server
    ```
+3. (For Workflow 3: paper writing) **LaTeX** environment with `latexmk` and `pdfinfo`:
+   ```bash
+   # macOS
+   brew install --cask mactex    # or: brew install basictex
+   brew install poppler          # provides pdfinfo
+
+   # Ubuntu/Debian
+   sudo apt install texlive-full latexmk poppler-utils
+
+   # Verify
+   latexmk --version && pdfinfo -v
+   ```
+   > If you only need Workflow 1 & 2 (idea discovery + auto review), LaTeX is not required.
 
 ### Install Skills
 
@@ -198,15 +372,28 @@ cp -r skills/research-lit ~/.claude/skills/
 ### Usage
 
 ```
-> /idea-creator DLLMs post training
-> /research-lit discrete diffusion language models
-> /research-review my paper on training dynamics in D-LLMs
-> /auto-review-loop ML paper on factorized gap diagnosis
+# Workflow 1: Idea Discovery
+> /idea-discovery "your research direction"          # full pipeline
+> /research-lit "topic"                              # just literature survey (all sources)
+> /research-lit "topic" — sources: zotero, web        # mix and match sources
+> /idea-creator "topic"                              # just brainstorm
+
+# Workflow 2: Auto Research Loop
+> /auto-review-loop "your paper topic"               # review → fix → repeat
+> /research-review "your paper"                      # single deep review
+
+# Workflow 3: Paper Writing
+> /paper-writing "NARRATIVE_REPORT.md"               # full pipeline
+> /paper-plan "NARRATIVE_REPORT.md"                  # just outline
+> /paper-compile "paper/"                            # just compile
+
+# Full Pipeline
+> /research-pipeline "your research direction"       # Workflow 1 → 2 → 3 end-to-end
+
+# Supporting Skills
 > /run-experiment train.py --lr 1e-4 --epochs 100
 > /analyze-results figures/*.json
 > /monitor-experiment server5
-> /idea-discovery discrete diffusion language models
-> /research-pipeline DLLMs post training
 ```
 
 ### 🌙 Auto-Allow for Overnight Runs (Optional)
@@ -248,31 +435,61 @@ Claude Code reads this and knows how to SSH in, activate the environment, and la
 
 **No server?** The review and rewriting skills still work without GPU access. Only experiment-related fixes will be skipped (flagged for manual follow-up).
 
-## 🏗️ How It Works
+### 📚 Zotero Integration (Optional)
 
-```
-┌─────────────────────────────────────────────────┐
-│                 Claude Code                      │
-│                                                  │
-│  ┌──────────┐    ┌──────────┐    ┌──────────┐   │
-│  │  Read     │    │  Write   │    │  SSH to  │   │
-│  │  project  │───▶│  code &  │───▶│  GPU     │   │
-│  │  context  │    │  scripts │    │  server  │   │
-│  └──────────┘    └──────────┘    └──────────┘   │
-│       │                               │          │
-│       ▼                               ▼          │
-│  ┌──────────────────────────────────────────┐    │
-│  │         Codex MCP (External LLM)         │    │
-│  │                                          │    │
-│  │  Round 1: "Score 5/10. Weaknesses: ..."  │    │
-│  │  Round 2: "Score 6.5. Better, but ..."   │    │
-│  │  Round 3: "Score 7.0. Almost there..."   │    │
-│  │  Round 4: "Score 7.5. Ready." ✅         │    │
-│  └──────────────────────────────────────────┘    │
-└─────────────────────────────────────────────────┘
+If you use [Zotero](https://www.zotero.org/) to manage your paper library, `/research-lit` can search your collections, read your annotations/highlights, and export BibTeX — all before searching the web.
+
+**Recommended: [zotero-mcp](https://github.com/54yyyu/zotero-mcp)** (1.8k⭐, semantic search, PDF annotations, BibTeX export)
+
+```bash
+# Install
+uv tool install zotero-mcp-server   # or: pip install zotero-mcp-server
+
+# Add to Claude Code (Local API — requires Zotero desktop running)
+claude mcp add zotero -s user -- zotero-mcp -e ZOTERO_LOCAL=true
+
+# Or use Web API (works without Zotero running)
+claude mcp add zotero -s user -- zotero-mcp \
+  -e ZOTERO_API_KEY=your_key -e ZOTERO_USER_ID=your_id
 ```
 
-The key insight: **Claude Code handles execution** (reading files, writing code, running experiments, collecting results) while **the external LLM handles evaluation** (scoring, identifying weaknesses, suggesting fixes). This separation creates a genuine feedback loop — neither model is grading its own work.
+> Get your API key at https://www.zotero.org/settings/keys
+
+**What it enables in `/research-lit`:**
+- 🔍 Search your Zotero library by topic (including semantic/vector search)
+- 📂 Browse collections and tags
+- 📝 Read your PDF annotations and highlights (what you personally found important)
+- 📄 Export BibTeX for direct use in paper writing
+
+**Not using Zotero?** No problem — `/research-lit` automatically skips Zotero and uses local PDFs + web search instead.
+
+### 📓 Obsidian Integration (Optional)
+
+If you use [Obsidian](https://obsidian.md/) for research notes, `/research-lit` can search your vault for paper summaries, tagged references, and your own insights.
+
+**Recommended: [mcpvault](https://github.com/bitbonsai/mcpvault)** (760⭐, no Obsidian app needed, 14 tools, BM25 search)
+
+```bash
+# Add to Claude Code (point to your vault path)
+claude mcp add obsidian-vault -s user -- npx @bitbonsai/mcpvault@latest /path/to/your/vault
+```
+
+**Optional complement: [obsidian-skills](https://github.com/kepano/obsidian-skills)** (13.6k⭐, by Obsidian CEO) — teaches Claude to understand Obsidian-specific Markdown (wikilinks, callouts, properties). Copy to your vault:
+
+```bash
+git clone https://github.com/kepano/obsidian-skills.git
+cp -r obsidian-skills/.claude /path/to/your/vault/
+```
+
+**What it enables in `/research-lit`:**
+- 🔍 Search your vault for notes on the research topic
+- 🏷️ Find notes by tags (e.g., `#paper-review`, `#diffusion-models`)
+- 📝 Read your processed summaries and insights (more valuable than raw papers)
+- 🔗 Follow wikilinks to discover related notes
+
+**Not using Obsidian?** No problem — `/research-lit` automatically skips Obsidian and works as before.
+
+> 💡 **Zotero + Obsidian together**: Many researchers use Zotero for paper storage and Obsidian for notes. Both integrations work simultaneously — `/research-lit` checks Zotero first (raw papers + annotations), then Obsidian (your processed notes), then local PDFs, then web search.
 
 ## 🎛️ Customization
 
@@ -316,14 +533,15 @@ Override inline: `/research-lit "topic" — paper library: ~/Zotero/storage/`
 - **Prompt templates** — tailor the review persona and evaluation criteria
 - **`allowed-tools`** — restrict or expand what each skill can do
 
-## 🔀 Alternative Model Combination: GLM + MiniMax
+## 🔀 Alternative Model Combinations
 
-Don't have Claude / OpenAI API access? You can run the full ARIS pipeline using **GLM (ZhiPu)** as the executor and **MiniMax-2.5** as the reviewer — same cross-model architecture, different providers.
+Don't have Claude / OpenAI API access? You can swap in other models — same cross-model architecture, different providers.
 
-| Role | Default | Alternative |
-|------|---------|-------------|
-| Executor (Claude Code) | Claude Opus/Sonnet | GLM-5 / GLM-4.7 (via ZhiPu API) |
-| Reviewer (Codex MCP) | GPT-5.4 | MiniMax-M2.5 (via MiniMax API) |
+| Role | Default | Alt A: GLM + GPT | Alt B: GLM + MiniMax |
+|------|---------|-------------------|----------------------|
+| Executor (Claude Code) | Claude Opus/Sonnet | GLM-5 (ZhiPu API) | GLM-5 (ZhiPu API) |
+| Reviewer (Codex MCP) | GPT-5.4 | GPT-5.4 (OpenAI API) | MiniMax-M2.5 (MiniMax API) |
+| Need OpenAI API? | Yes | Yes | **No** |
 
 ### Step 1: Install Claude Code & Codex CLI
 
@@ -336,6 +554,37 @@ npm install -g @openai/codex
 
 Open with: `nano ~/.claude/settings.json`
 
+<details>
+<summary><b>Alt A: GLM (executor) + GPT (reviewer)</b> — Only replace Claude, keep GPT-5.4 as reviewer</summary>
+
+```json
+{
+    "env": {
+        "ANTHROPIC_AUTH_TOKEN": "your_zai_api_key",
+        "ANTHROPIC_BASE_URL": "https://api.z.ai/api/anthropic",
+        "API_TIMEOUT_MS": "3000000",
+        "ANTHROPIC_DEFAULT_HAIKU_MODEL": "glm-4.5-air",
+        "ANTHROPIC_DEFAULT_SONNET_MODEL": "glm-4.7",
+        "ANTHROPIC_DEFAULT_OPUS_MODEL": "glm-5"
+    },
+    "mcpServers": {
+        "codex": {
+            "command": "/opt/homebrew/bin/codex",
+            "args": [
+                "mcp-server"
+            ]
+        }
+    }
+}
+```
+
+Codex CLI uses your existing `OPENAI_API_KEY` (from `~/.codex/config.toml` or environment) — no extra config needed for the reviewer side.
+
+</details>
+
+<details>
+<summary><b>Alt B: GLM (executor) + MiniMax (reviewer)</b> — No Claude or OpenAI API needed</summary>
+
 ```json
 {
     "env": {
@@ -345,7 +594,7 @@ Open with: `nano ~/.claude/settings.json`
         "ANTHROPIC_DEFAULT_HAIKU_MODEL": "glm-4.5-air",
         "ANTHROPIC_DEFAULT_SONNET_MODEL": "glm-4.7",
         "ANTHROPIC_DEFAULT_OPUS_MODEL": "glm-5",
-        "CODEX_API_KEY": "your_zai_api_key",
+        "CODEX_API_KEY": "your_minimax_api_key",
         "CODEX_API_BASE": "https://api.minimax.chat/v1/",
         "CODEX_MODEL": "MiniMax-M2.5"
     },
@@ -359,6 +608,8 @@ Open with: `nano ~/.claude/settings.json`
     }
 }
 ```
+
+</details>
 
 Save: `Ctrl+O` → `Enter` → `Ctrl+X`
 
@@ -390,11 +641,40 @@ For each skill, confirm: (1) it loads without errors, (2) the frontmatter is par
 
 This lets GLM (acting as Claude Code) familiarize itself with the skill files and catch any compatibility issues upfront — rather than discovering them mid-workflow when it's expensive to fail.
 
-> ⚠️ **Note:** GLM and MiniMax may behave differently from Claude and GPT-5.4. You may need to adjust `REVIEWER_MODEL` in the skills and tune prompt templates for best results. The core cross-model architecture remains the same.
+> ⚠️ **Note:** Alternative models may behave differently from Claude and GPT-5.4. You may need to adjust `REVIEWER_MODEL` in the skills and tune prompt templates for best results. The core cross-model architecture remains the same.
 
 ## 📋 Roadmap
 
-- [ ] **Zotero MCP integration** — read papers, tags, and annotations directly from Zotero library
+### Done
+
+- [x] **Human-in-the-loop checkpoints** — idea-discovery and research-pipeline pause at key decision points for user approval. Configurable via `AUTO_PROCEED` (default: auto-continue; set `false` to always wait)
+- [x] **Alternative model combinations** — [GLM + GPT, GLM + MiniMax](#-alternative-model-combinations) fully documented with setup guides. No Claude or OpenAI API required
+- [x] **Workflow 3: Paper Writing Pipeline** — full chain: `/paper-plan` → `/paper-figure` → `/paper-write` → `/paper-compile`. ICLR/NeurIPS/ICML templates, claims-evidence matrix, publication-quality figures, latexmk auto-fix. Inspired by [claude-scholar](https://github.com/Galaxy-Dawn/claude-scholar), [Research-Paper-Writing-Skills](https://github.com/Master-cai/Research-Paper-Writing-Skills), [baoyu-skills](https://github.com/jimliu/baoyu-skills)
+
+<details>
+<summary>Show 6 more completed items</summary>
+
+- [x] **Configurable REVIEWER_MODEL** — all Codex-dependent skills support custom reviewer model (default `gpt-5.4`, also works with `o3`, `gpt-4o`, etc.)
+
+- [x] **Local paper library scanning** — `/research-lit` scans local `papers/` and `literature/` directories before external search, leveraging papers you've already read
+- [x] **Idea Discovery pipeline** — `/idea-discovery` orchestrates research-lit → idea-creator → novelty-check → research-review in one command, with pilot experiments on GPU
+- [x] **Full research pipeline** — `/research-pipeline` chains Workflow 1 (idea discovery) → implementation → Workflow 2 (auto-review-loop) end-to-end
+- [x] **Peer review skill** — `/peer-review` for reviewing others' papers as a conference reviewer, with GPT-5.4 meta-review
+- [x] **Cross-model collaboration** — Claude Code (executor) × Codex GPT-5.4 xhigh (reviewer) architecture, avoiding single-model self-play local minima
+
+</details>
+
+### Planned
+
+- [ ] **Feishu/Lark integration** — three modes, configurable per skill:
+  - **Off** (default) — no Feishu, pure CLI as-is
+  - **Push only** — lightweight webhook notifications at key events (experiment done, review scored, checkpoint waiting). No extra process needed, just `curl` from within skills. Mobile push, no reply
+  - **Interactive** — full bidirectional via [feishu-claude-code](https://github.com/joewongjc/feishu-claude-code). Approve/reject ideas, reply to checkpoints from Feishu. Requires `python main.py` running alongside Claude Code (both can run on a remote server via `screen`)
+  - Related projects: [clawdbot-feishu](https://github.com/m1heng/clawdbot-feishu) (3.7k⭐), [cc-connect](https://github.com/chenhg5/cc-connect) (multi-platform bridge), [lark-openapi-mcp](https://github.com/larksuite/lark-openapi-mcp) (official, 424⭐)
+- [ ] **W&B integration** — pull training curves and metrics from Weights & Biases as feedback signal. Auto-review-loop can read loss/accuracy plots to diagnose training issues and suggest next experiments
+  - Related projects: [wandb-mcp-server](https://github.com/wandb/mcp-server) (official W&B MCP, if available), or via `wandb api` CLI
+- [x] **Zotero MCP integration** — `/research-lit` searches Zotero collections, reads annotations/highlights, exports BibTeX. Recommended: [zotero-mcp](https://github.com/54yyyu/zotero-mcp) (1.8k⭐). See [setup guide](#-zotero-integration-optional)
+- [x] **Obsidian integration** — `/research-lit` searches Obsidian vault for research notes, tagged references, wikilinks. Recommended: [mcpvault](https://github.com/bitbonsai/mcpvault) (760⭐) + [obsidian-skills](https://github.com/kepano/obsidian-skills) (13.6k⭐). See [setup guide](#-obsidian-integration-optional)
 - [ ] More executor × reviewer combinations (Gemini, DeepSeek, etc.)
 
 ## 💬 Community
@@ -407,7 +687,7 @@ Join the WeChat group for discussion on Claude Code + AI-driven research workflo
 
 ![GitHub stars](https://img.shields.io/github/stars/wanshuiyin/Auto-claude-code-research-in-sleep?style=social)
 
-[![Star History Chart](https://api.star-history.com/svg?repos=wanshuiyin/Auto-claude-code-research-in-sleep&type=Date&v=20260312)](https://star-history.com/#wanshuiyin/Auto-claude-code-research-in-sleep&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=wanshuiyin/Auto-claude-code-research-in-sleep&type=Date&v=20260312&r=2)](https://star-history.com/#wanshuiyin/Auto-claude-code-research-in-sleep&Date)
 
 ## License
 
