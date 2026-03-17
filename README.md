@@ -1079,6 +1079,12 @@ If you use ARIS in your research, please cite:
 
 ## 🙏 Acknowledgements
 
+ARIS is inspired by:
+
+- 🧪 [AI Scientist](https://github.com/SakanaAI/AI-Scientist) (Sakana AI) — Automated research pioneer
+- 📖 [AutoResearch](https://github.com/karpathy/autoresearch) (Andrej Karpathy) — End-to-end research automation
+- 🔭 [FARS](https://analemma.ai/blog/introducing-fars/) (Analemma) — Fully Automated Research System
+
 This project builds on and integrates with many excellent open-source projects:
 
 **Core Infrastructure**
@@ -1106,14 +1112,6 @@ This project builds on and integrates with many excellent open-source projects:
 
 **Community**
 - [awesome-agent-skills](https://github.com/VoltAgent/awesome-agent-skills) — Curated list of Claude Code skills (featured)
-
-## 🙏 Acknowledgments
-
-ARIS is inspired by:
-
-- 🧪 [AI Scientist](https://github.com/SakanaAI/AI-Scientist) (Sakana AI) — Automated research pioneer
-- 📖 [AutoResearch](https://github.com/karpathy/autoresearch) (Andrej Karpathy) — End-to-end research automation
-- 🔭 [FARS](https://analemma.ai/blog/introducing-fars/) (Analemma) — Fully Automated Research System
 
 ## License
 

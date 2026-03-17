@@ -977,6 +977,12 @@ claude
 
 ## 🙏 致谢
 
+ARIS 的灵感来自：
+
+- 🧪 [AI Scientist](https://github.com/SakanaAI/AI-Scientist)（Sakana AI）— 自动化科研先驱
+- 📖 [AutoResearch](https://github.com/karpathy/autoresearch)（Andrej Karpathy）— 端到端科研自动化
+- 🔭 [FARS](https://analemma.ai/blog/introducing-fars/)（Analemma）— 全自动科研系统
+
 本项目构建于并集成了许多优秀的开源项目：
 
 **核心基础设施**
@@ -1004,14 +1010,6 @@ claude
 
 **社区**
 - [awesome-agent-skills](https://github.com/VoltAgent/awesome-agent-skills) — Claude Code skills 精选列表（已收录）
-
-## 🙏 致谢
-
-ARIS 的灵感来自：
-
-- 🧪 [AI Scientist](https://github.com/SakanaAI/AI-Scientist)（Sakana AI）— 自动化科研先驱
-- 📖 [AutoResearch](https://github.com/karpathy/autoresearch)（Andrej Karpathy）— 端到端科研自动化
-- 🔭 [FARS](https://analemma.ai/blog/introducing-fars/)（Analemma）— 全自动科研系统
 
 ## License
 
